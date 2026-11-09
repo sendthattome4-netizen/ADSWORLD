@@ -55,3 +55,34 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute procedure public.handle_new_user();
+
+-- Publisher website applications and dashboard.
+create table if not exists public.publisher_sites (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  site_name text not null,
+  site_url text not null,
+  category text not null,
+  monthly_visitors text not null default 'Not sure',
+  ad_format text not null default 'Banner placement',
+  status text not null default 'pending' check (status in ('pending','approved','rejected','suspended')),
+  created_at timestamptz not null default now()
+);
+
+alter table public.publisher_sites enable row level security;
+
+drop policy if exists "Users can view own publisher sites" on public.publisher_sites;
+create policy "Users can view own publisher sites"
+on public.publisher_sites for select
+using (auth.uid() = user_id);
+
+drop policy if exists "Users can submit own publisher sites" on public.publisher_sites;
+create policy "Users can submit own publisher sites"
+on public.publisher_sites for insert
+with check (auth.uid() = user_id and status = 'pending');
+
+drop policy if exists "Users can update own pending publisher sites" on public.publisher_sites;
+create policy "Users can update own pending publisher sites"
+on public.publisher_sites for update
+using (auth.uid() = user_id and status = 'pending')
+with check (auth.uid() = user_id and status = 'pending');

@@ -37,6 +37,21 @@
         <div class="full form-bottom"><p id="form-message" class="message">Sign in to save a campaign.</p><button class="btn btn-primary" type="submit">Save campaign draft</button></div>
       </form>
     </section>
+    <section class="panel" id="publisher">
+      <div class="section-heading"><div><p class="eyebrow">PUBLISHER NETWORK</p><h2>Register your website</h2></div><span class="tag">For website owners</span></div>
+      <p class="muted">Apply to display eligible AdWorld advertising placements on a website you own or manage. Applications are reviewed before any ads can run.</p>
+      <form id="publisher-form" class="form-grid">
+        <label>Website or publication name<input name="site_name" required placeholder="e.g. My News Website"></label>
+        <label>Website URL<input name="site_url" type="url" required placeholder="https://example.com"></label>
+        <label>Website category<select name="category" required><option value="">Choose a category</option><option>News and media</option><option>Education</option><option>Entertainment</option><option>Technology</option><option>Business</option><option>Lifestyle</option><option>Other</option></select></label>
+        <label>Estimated monthly visitors<select name="monthly_visitors"><option>Not sure</option><option>Under 1,000</option><option>1,000–10,000</option><option>10,001–50,000</option><option>50,001–100,000</option><option>Over 100,000</option></select></label>
+        <label class="full">Where could ads appear?<select name="ad_format"><option>Banner placement</option><option>In-content placement</option><option>Sidebar placement</option><option>Multiple placements</option></select></label>
+        <div class="full form-bottom"><p id="publisher-message" class="message">Sign in to submit a publisher application.</p><button class="btn btn-primary" type="submit">Submit publisher application</button></div>
+      </form>
+      <div class="section-heading publisher-subhead"><div><p class="eyebrow">PUBLISHER DASHBOARD</p><h2>My websites</h2></div><button id="publisher-refresh" class="btn btn-light" type="button">Refresh</button></div>
+      <div id="publisher-list" class="campaign-list"><p class="muted">Sign in to view your publisher applications.</p></div>
+      <p class="notice small-notice">Publisher applications are stored for review. Ad serving, earnings, and payments are not active yet. Do not place an ad code on your site until AdWorld provides an approved integration.</p>
+    </section>
     <section class="panel">
       <div class="section-heading"><div><p class="eyebrow">YOUR WORK</p><h2>My campaigns</h2></div><button id="refresh" class="btn btn-light">Refresh</button></div>
       <div id="campaign-list" class="campaign-list"><p class="muted">Sign in to view your saved campaigns.</p></div>
