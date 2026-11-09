@@ -28,8 +28,11 @@
     $("#auth-open").classList.toggle("hidden", !!user);
     $("#logout").classList.toggle("hidden", !user);
     $("#form-message").textContent = user ? "Ready to save your campaign draft." : "Sign in to save a campaign.";
-    if (user) loadCampaigns();
-    else $("#campaign-list").innerHTML = '<p class="muted">Sign in to view your saved campaigns.</p>';
+    if (user) { loadCampaigns(); loadPublisherSites(); }
+    else {
+      loadPublisherSites();
+      $("#campaign-list").innerHTML = '<p class="muted">Sign in to view your saved campaigns.</p>';
+    }
   }
   if (!clientReady) message($("#form-message"), "Supabase configuration is missing. Check config.js.", true);
 
@@ -100,6 +103,57 @@
     } catch (err) { message($("#form-message"), err.message || "Could not save campaign. Run schema.sql first.", true); }
     finally { btn.disabled = false; }
   });
+
+  $("#publisher-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!db || !currentUser) {
+      message($("#publisher-message"), "Please sign in before submitting a publisher application.", true);
+      $("#auth-dialog").showModal(); return;
+    }
+    const f = new FormData(e.currentTarget);
+    const siteUrl = String(f.get("site_url") || "").trim();
+    try {
+      const parsed = new URL(siteUrl);
+      if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Invalid URL");
+    } catch (_) {
+      message($("#publisher-message"), "Enter a valid website URL, for example https://example.com.", true); return;
+    }
+    const submit = e.submitter; submit.disabled = true;
+    try {
+      const {error} = await db.from("publisher_sites").insert({
+        user_id: currentUser.id,
+        site_name: String(f.get("site_name")).trim(),
+        site_url: siteUrl,
+        category: f.get("category"),
+        monthly_visitors: f.get("monthly_visitors"),
+        ad_format: f.get("ad_format"),
+        status: "pending"
+      });
+      if (error) throw error;
+      message($("#publisher-message"), "Application submitted. It is waiting for review.");
+      e.currentTarget.reset();
+      await loadPublisherSites();
+    } catch (err) {
+      message($("#publisher-message"), err.message || "Could not submit application. Run the updated schema.sql in Supabase.", true);
+    } finally { submit.disabled = false; }
+  });
+  $("#publisher-refresh").addEventListener("click", loadPublisherSites);
+
+  async function loadPublisherSites() {
+    const holder = $("#publisher-list");
+    if (!db || !currentUser) {
+      holder.innerHTML = '<p class="muted">Sign in to view your publisher applications.</p>'; return;
+    }
+    holder.innerHTML = '<p class="muted">Loading publisher applications…</p>';
+    const {data,error} = await db.from("publisher_sites").select("*").order("created_at",{ascending:false});
+    if (error) {
+      holder.innerHTML = `<p class="error">${escapeHtml(error.message)}. Run the updated schema.sql in Supabase.</p>`; return;
+    }
+    if (!data || !data.length) {
+      holder.innerHTML = '<p class="muted">No websites submitted yet. Complete the form above to apply.</p>'; return;
+    }
+    holder.innerHTML = data.map(site => `<article class="campaign-item"><div><strong>${escapeHtml(site.site_name)}</strong><p><a href="${escapeHtml(site.site_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(site.site_url)}</a> · ${escapeHtml(site.category)} · ${escapeHtml(site.monthly_visitors)}</p></div><span class="status">${escapeHtml(site.status)}</span></article>`).join("");
+  }
 
   async function loadCampaigns() {
     if (!db || !currentUser) return;

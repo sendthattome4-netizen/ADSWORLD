@@ -1,26 +1,19 @@
-# AdWorld V2 — Supabase-connected starter
+# AdWorld V3 — Publisher applications
 
-This package has your Supabase Project URL and browser-safe Publishable key already inserted in `config.js`.
+## What this version adds
+- Publisher website application form.
+- Publisher dashboard showing the signed-in user's submitted websites and review status.
+- Applications remain pending until reviewed.
+- Existing advertiser campaign and account features remain.
 
-## 1. Create the database tables
-1. Open https://supabase.com/dashboard/project/ncmpwmnkcxbjvuvupqen
-2. Choose **SQL Editor**.
-3. Choose **New query**.
-4. Open `schema.sql` from this project, copy all its contents, paste into the SQL editor and press **Run**.
+## Update Supabase
+1. Open your Supabase project and choose SQL Editor.
+2. Create a new query.
+3. Open the updated `schema.sql` file, copy all its contents, paste into SQL Editor, and run it.
+4. This script can be rerun safely and adds the `publisher_sites` table and security policies.
 
-## 2. Enable email authentication
-In Supabase, open **Authentication → Providers → Email**. Make sure Email is enabled. For initial testing you may turn off email confirmation; turn it back on before public launch.
+## Publish
+Upload the updated `index.html`, `styles.css`, `app.js`, `schema.sql`, and `SETUP.md` to the root of the existing GitHub ADSWORLD repository. Keep `config.js` unchanged. Commit the changes; Netlify should automatically redeploy after the GitHub commit.
 
-## 3. Preview the website
-Open `index.html` in a browser or deploy the folder to a static host such as Netlify. Keep all files together in the same folder.
-
-## 4. Test
-Create an account, sign in, create a campaign draft with a duration of one day, then check that it appears under **My campaigns**.
-
-## Security and current limits
-- `config.js` contains a Supabase publishable key, which is intended to be exposed in browser code. Never add a Supabase secret/service-role key, database password, payment secret, or private API key to this project.
-- Database access is protected with Row Level Security policies in `schema.sql`.
-- This is a connected starter, not a complete ad network. It currently supports account authentication and saving/viewing campaign drafts.
-- It does not yet deliver ads, onboard publishers, track impressions/clicks, process payments, or connect Meta, TikTok, or Google ad accounts.
-- Campaign booking duration is separate from any future AdWorld membership subscription. A campaign can be drafted for 1–365 days.
-- Do not collect card numbers, CVV, mobile-money PINs or OTPs in AdWorld. Use a compliant hosted payment provider when payments are implemented.
+## Current limitations
+This version accepts publisher applications and displays their status. It does not yet verify website ownership, serve ads, count impressions/clicks, calculate earnings, or process payouts.
