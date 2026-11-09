@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AdWorld — Advertising made accessible</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand-mark">A</span> AdWorld</a>
+    <div class="top-actions"><span id="user-label">Not signed in</span><button id="auth-open" class="btn btn-light">Sign in / Join</button><button id="logout" class="btn btn-outline hidden">Log out</button></div>
+  </header>
+  <main class="wrap">
+    <section class="hero">
+      <div><p class="eyebrow">YOUR ADVERTISING, YOUR REACH</p><h1>Make every campaign count.</h1><p class="sub">Plan advertising campaigns, choose your audience and book from one day upward.</p><a href="#create" class="btn btn-primary">Create a campaign</a></div>
+      <div class="hero-card"><div class="hero-stat">1 day</div><strong>Flexible campaign booking</strong><p>Start small. Set your own duration and budget.</p></div>
+    </section>
+    <section class="notice"><strong>Starter version:</strong> Campaigns are saved to your AdWorld database after you connect your account. Advertising delivery, publisher placements and payment processing are not activated yet.</section>
+    <section class="panel" id="create">
+      <div class="section-heading"><div><p class="eyebrow">CAMPAIGN WORKSPACE</p><h2>Create a campaign</h2></div><span class="tag">Booking: 1–365 days</span></div>
+      <form id="campaign-form" class="form-grid">
+        <label>Campaign name<input name="name" required placeholder="e.g. New product launch"></label>
+        <label>Website or destination URL<input name="destination_url" type="url" placeholder="https://example.com"></label>
+        <label>Campaign objective<select name="objective"><option>Brand awareness</option><option>Website visits</option><option>Engagement</option><option>Leads</option><option>Sales</option></select></label>
+        <label>Target country<select name="country" id="country"><option value="Worldwide">Worldwide</option></select></label>
+        <label>Audience age range<select name="age_range"><option>18–65+</option><option>18–24</option><option>25–34</option><option>35–44</option><option>45–54</option><option>55–65+</option></select></label>
+        <label>Gender<select name="gender"><option>All</option><option>Women</option><option>Men</option><option>Not specified</option></select></label>
+        <label>Interests<input name="interests" placeholder="e.g. fashion, technology, food"></label>
+        <label>Duration (days)<input name="duration_days" type="number" min="1" max="365" value="1" required></label>
+        <label>Budget amount<input name="budget" type="number" min="0" step="0.01" placeholder="e.g. 10"></label>
+        <label>Currency<select name="currency" id="currency"><option value="XAF">XAF — Central African CFA franc</option><option value="USD">USD — US dollar</option><option value="EUR">EUR — Euro</option><option value="GBP">GBP — Pound sterling</option><option value="NGN">NGN — Nigerian naira</option><option value="GHS">GHS — Ghanaian cedi</option><option value="KES">KES — Kenyan shilling</option><option value="ZAR">ZAR — South African rand</option></select></label>
+        <label class="full">Campaign description<textarea name="description" rows="4" placeholder="Describe the product, service or message you want to promote."></textarea></label>
+        <div class="full form-bottom"><p id="form-message" class="message">Sign in to save a campaign.</p><button class="btn btn-primary" type="submit">Save campaign draft</button></div>
+      </form>
+    </section>
+    <section class="panel">
+      <div class="section-heading"><div><p class="eyebrow">YOUR WORK</p><h2>My campaigns</h2></div><button id="refresh" class="btn btn-light">Refresh</button></div>
+      <div id="campaign-list" class="campaign-list"><p class="muted">Sign in to view your saved campaigns.</p></div>
+    </section>
+    <footer>© <span id="year"></span> AdWorld. Build your reach responsibly.</footer>
+  </main>
+  <dialog id="auth-dialog">
+    <form method="dialog" class="dialog-head"><h2 id="auth-title">Welcome to AdWorld</h2><button class="x" aria-label="Close">×</button></form>
+    <div class="auth-tabs"><button id="show-login" class="active">Sign in</button><button id="show-signup">Create account</button></div>
+    <form id="auth-form" class="auth-form">
+      <label>Email address<input name="email" type="email" required autocomplete="email"></label>
+      <label>Password<input name="password" type="password" minlength="6" required autocomplete="current-password"></label>
+      <button id="auth-submit" class="btn btn-primary" type="submit">Sign in</button>
+      <p id="auth-message" class="message"></p>
+    </form>
+  </dialog>
+</body>
+</html>
