@@ -3,171 +3,47 @@
   const clientReady = !!(window.supabase && cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY);
   const db = clientReady ? window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY) : null;
   const $ = (s) => document.querySelector(s);
-  let mode = "login";
-  let currentUser = null;
-
+  let mode = "login", currentUser = null, isAdmin = false;
   $("#year").textContent = new Date().getFullYear();
-  const countrySelect = $("#country");
   try {
-    const display = new Intl.DisplayNames(["en"], {type:"region"});
-    const regions = [];
-    for (let a=65; a<=90; a++) for (let b=65; b<=90; b++) {
-      const code = String.fromCharCode(a,b);
-      const name = display.of(code);
-      if (name && name !== code && !name.startsWith("Unknown")) regions.push([name,code]);
-    }
-    [...new Map(regions.map(x=>[x[0],x])).values()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,code]) => {
-      const opt = document.createElement("option"); opt.value = name; opt.textContent = name; countrySelect.appendChild(opt);
-    });
+    const display = new Intl.DisplayNames(["en"], {type:"region"}), regions = [];
+    for (let a=65; a<=90; a++) for (let b=65; b<=90; b++) { const code=String.fromCharCode(a,b), name=display.of(code); if(name && name!==code && !name.startsWith("Unknown")) regions.push([name,code]); }
+    [...new Map(regions.map(x=>[x[0],x])).values()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name])=>{const opt=document.createElement("option");opt.value=name;opt.textContent=name;$("#country").appendChild(opt);});
   } catch (_) {}
-
-  function message(el, text, error=false) { el.textContent = text; el.classList.toggle("error", error); }
-  function setSignedIn(user) {
-    currentUser = user || null;
-    $("#user-label").textContent = user ? user.email : "Not signed in";
-    $("#auth-open").classList.toggle("hidden", !!user);
-    $("#logout").classList.toggle("hidden", !user);
-    $("#form-message").textContent = user ? "Ready to save your campaign draft." : "Sign in to save a campaign.";
-    if (user) { loadCampaigns(); loadPublisherSites(); }
-    else {
-      loadPublisherSites();
-      $("#campaign-list").innerHTML = '<p class="muted">Sign in to view your saved campaigns.</p>';
+  function message(el, text, error=false) { el.textContent=text; el.classList.toggle("error",error); }
+  function esc(v) { return String(v ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  async function setSignedIn(user) {
+    currentUser=user||null; isAdmin=false;
+    $("#user-label").textContent=user?user.email:"Not signed in";
+    $("#auth-open").classList.toggle("hidden",!!user); $("#logout").classList.toggle("hidden",!user);
+    $("#form-message").textContent=user?"Ready to save your campaign draft.":"Sign in to save a campaign.";
+    $("#admin-panel").hidden=true;
+    if(user && db) {
+      const {data,error}=await db.from("profiles").select("role").eq("id",user.id).maybeSingle();
+      if(!error && String(data?.role||"").toLowerCase()==="admin") { isAdmin=true; $("#admin-panel").hidden=false; await loadAdmin(); }
     }
+    if(user) { await Promise.all([loadCampaigns(),loadPublisherSites()]); }
+    else { $("#campaign-list").innerHTML='<p class="muted">Sign in to view your saved campaigns.</p>'; $("#publisher-list").innerHTML='<p class="muted">Sign in to view your publisher applications.</p>'; }
   }
-  if (!clientReady) message($("#form-message"), "Supabase configuration is missing. Check config.js.", true);
-
-  $("#auth-open").addEventListener("click", () => $("#auth-dialog").showModal());
-  $("#show-login").addEventListener("click", () => setMode("login"));
-  $("#show-signup").addEventListener("click", () => setMode("signup"));
-  function setMode(next) {
-    mode = next;
-    $("#show-login").classList.toggle("active", mode==="login");
-    $("#show-signup").classList.toggle("active", mode==="signup");
-    $("#auth-title").textContent = mode==="login" ? "Welcome back" : "Create your AdWorld account";
-    $("#auth-submit").textContent = mode==="login" ? "Sign in" : "Create account";
+  if(!clientReady) message($("#form-message"),"Supabase configuration is missing. Check config.js.",true);
+  $("#auth-open").addEventListener("click",()=>$("#auth-dialog").showModal());
+  $("#show-login").addEventListener("click",()=>setMode("login")); $("#show-signup").addEventListener("click",()=>setMode("signup"));
+  function setMode(next) { mode=next; $("#show-login").classList.toggle("active",mode==="login"); $("#show-signup").classList.toggle("active",mode==="signup"); $("#auth-title").textContent=mode==="login"?"Welcome back":"Create your AdWorld account"; $("#auth-submit").textContent=mode==="login"?"Sign in":"Create account"; }
+  $("#auth-form").addEventListener("submit",async e=>{e.preventDefault();if(!db)return message($("#auth-message"),"Supabase is not configured.",true);const f=new FormData(e.currentTarget),email=f.get("email"),password=f.get("password");$("#auth-submit").disabled=true;try{const r=mode==="login"?await db.auth.signInWithPassword({email,password}):await db.auth.signUp({email,password});if(r.error)throw r.error;if(mode==="signup"&&!r.data.session)message($("#auth-message"),"Account created. Check your email to confirm your address.");else{$("#auth-dialog").close();await setSignedIn(r.data.user);}}catch(err){message($("#auth-message"),err.message||"Authentication failed.",true);}finally{$("#auth-submit").disabled=false;}});
+  $("#logout").addEventListener("click",async()=>{if(db)await db.auth.signOut();await setSignedIn(null);});
+  $("#refresh").addEventListener("click",loadCampaigns); $("#publisher-refresh").addEventListener("click",loadPublisherSites); $("#admin-refresh").addEventListener("click",loadAdmin);
+  $("#campaign-form").addEventListener("submit",async e=>{e.preventDefault();if(!db||!currentUser){message($("#form-message"),"Please sign in before saving a campaign.",true);$("#auth-dialog").showModal();return;}const f=new FormData(e.currentTarget),days=Number(f.get("duration_days"));if(!Number.isInteger(days)||days<1||days>365)return message($("#form-message"),"Duration must be between 1 and 365 days.",true);const campaign={user_id:currentUser.id,name:f.get("name"),destination_url:f.get("destination_url")||null,objective:f.get("objective"),country:f.get("country"),age_range:f.get("age_range"),gender:f.get("gender"),interests:f.get("interests")||null,duration_days:days,budget:f.get("budget")?Number(f.get("budget")):null,currency:f.get("currency"),description:f.get("description")||null,status:"draft"};const btn=e.submitter;btn.disabled=true;try{const {error}=await db.from("campaigns").insert(campaign);if(error)throw error;message($("#form-message"),"Campaign draft saved.");e.currentTarget.reset();e.currentTarget.elements.duration_days.value=1;await loadCampaigns();if(isAdmin)await loadAdmin();}catch(err){message($("#form-message"),err.message||"Could not save campaign.",true);}finally{btn.disabled=false;}});
+  $("#publisher-form").addEventListener("submit",async e=>{e.preventDefault();if(!db||!currentUser){message($("#publisher-message"),"Please sign in before submitting a publisher application.",true);$("#auth-dialog").showModal();return;}const f=new FormData(e.currentTarget),siteUrl=String(f.get("site_url")||"").trim();try{const u=new URL(siteUrl);if(!["http:","https:"].includes(u.protocol))throw Error();}catch(_){message($("#publisher-message"),"Enter a valid website URL, for example https://example.com.",true);return;}const btn=e.submitter;btn.disabled=true;try{const {error}=await db.from("publisher_sites").insert({user_id:currentUser.id,site_name:String(f.get("site_name")).trim(),site_url:siteUrl,category:f.get("category"),monthly_visitors:f.get("monthly_visitors"),ad_format:f.get("ad_format"),status:"pending"});if(error)throw error;message($("#publisher-message"),"Application submitted. It is waiting for review.");e.currentTarget.reset();await loadPublisherSites();if(isAdmin)await loadAdmin();}catch(err){message($("#publisher-message"),err.message||"Could not submit application.",true);}finally{btn.disabled=false;}});
+  async function loadPublisherSites(){const h=$("#publisher-list");if(!db||!currentUser){h.innerHTML='<p class="muted">Sign in to view your publisher applications.</p>';return;}h.innerHTML='<p class="muted">Loading publisher applications…</p>';const {data,error}=await db.from("publisher_sites").select("*").order("created_at",{ascending:false});if(error){h.innerHTML=`<p class="error">${esc(error.message)}</p>`;return;}if(!data?.length){h.innerHTML='<p class="muted">No websites submitted yet. Complete the form above to apply.</p>';return;}h.innerHTML=data.map(s=>`<article class="campaign-item"><div><strong>${esc(s.site_name)}</strong><p><a href="${esc(s.site_url)}" target="_blank" rel="noopener noreferrer">${esc(s.site_url)}</a> · ${esc(s.category)} · ${esc(s.monthly_visitors)}</p></div><span class="status">${esc(s.status)}</span></article>`).join("");}
+  async function loadCampaigns(){if(!db||!currentUser)return;const h=$("#campaign-list");h.innerHTML='<p class="muted">Loading campaigns…</p>';const {data,error}=await db.from("campaigns").select("*").order("created_at",{ascending:false});if(error){h.innerHTML=`<p class="error">${esc(error.message)}</p>`;return;}if(!data?.length){h.innerHTML='<p class="muted">No campaigns yet. Create your first draft above.</p>';return;}h.innerHTML=data.map(c=>`<article class="campaign-item"><div><strong>${esc(c.name)}</strong><p>${esc(c.objective||"")} · ${esc(c.country||"Worldwide")} · ${c.duration_days} day(s)</p></div><span class="status">${esc(c.status)}</span></article>`).join("");}
+  async function loadAdmin(){if(!db||!currentUser||!isAdmin)return;message($("#admin-message"),"Refreshing dashboard…");const [users,campaigns,pubs]=await Promise.all([db.from("profiles").select("id,email,role,created_at").order("created_at",{ascending:false}),db.from("campaigns").select("id,name,objective,country,duration_days,budget,currency,status,created_at,user_id").order("created_at",{ascending:false}),db.from("publisher_sites").select("id,user_id,site_name,site_url,category,monthly_visitors,ad_format,status,created_at").order("created_at",{ascending:false})]);const err=users.error||campaigns.error||pubs.error;if(err){message($("#admin-message"),"Could not load admin data: "+err.message,true);return;}const U=users.data||[],C=campaigns.data||[],P=pubs.data||[];$("#stat-users").textContent=U.length;$("#stat-campaigns").textContent=C.length;$("#stat-publishers").textContent=P.length;$("#stat-pending").textContent=P.filter(x=>x.status==="pending").length+C.filter(x=>x.status==="pending").length;
+    $("#admin-publishers").innerHTML=P.length?P.map(p=>`<article class="admin-item"><div class="admin-item-main"><strong>${esc(p.site_name)}</strong><p><a href="${esc(p.site_url)}" target="_blank" rel="noopener noreferrer">${esc(p.site_url)}</a> · ${esc(p.category)} · ${esc(p.monthly_visitors)} visitors · ${esc(p.ad_format)}</p><small>Owner ID: ${esc(p.user_id)}</small></div><div class="admin-controls"><span class="status">${esc(p.status)}</span><select aria-label="Publisher status" data-pub-status="${esc(p.id)}"><option value="pending" ${p.status==="pending"?"selected":""}>Pending</option><option value="approved" ${p.status==="approved"?"selected":""}>Approve</option><option value="rejected" ${p.status==="rejected"?"selected":""}>Reject</option><option value="suspended" ${p.status==="suspended"?"selected":""}>Suspend</option></select><button class="btn btn-primary btn-small" data-save-pub="${esc(p.id)}">Save</button></div></article>`).join(""):'<p class="muted">No publisher applications yet.</p>';
+    $("#admin-campaigns").innerHTML=C.length?C.map(c=>`<article class="admin-item"><div class="admin-item-main"><strong>${esc(c.name)}</strong><p>${esc(c.objective)} · ${esc(c.country)} · ${c.duration_days} day(s) · ${c.budget==null?"Budget not set":esc(c.budget)+" "+esc(c.currency||"")}</p><small>Advertiser ID: ${esc(c.user_id)}</small></div><div class="admin-controls"><span class="status">${esc(c.status)}</span><select aria-label="Campaign status" data-camp-status="${esc(c.id)}"><option value="draft" ${c.status==="draft"?"selected":""}>Draft</option><option value="pending" ${c.status==="pending"?"selected":""}>Pending</option><option value="active" ${c.status==="active"?"selected":""}>Active</option><option value="paused" ${c.status==="paused"?"selected":""}>Paused</option><option value="completed" ${c.status==="completed"?"selected":""}>Completed</option><option value="rejected" ${c.status==="rejected"?"selected":""}>Rejected</option></select><button class="btn btn-primary btn-small" data-save-camp="${esc(c.id)}">Save</button></div></article>`).join(""):'<p class="muted">No campaigns yet.</p>';
+    $("#admin-users").innerHTML=U.length?U.map(u=>`<article class="admin-item"><div class="admin-item-main"><strong>${esc(u.email)}</strong><p>Role: ${esc(u.role)} · Joined: ${u.created_at?new Date(u.created_at).toLocaleDateString():"—"}</p></div></article>`).join(""):'<p class="muted">No registered users found.</p>';
+    $("#admin-publishers").querySelectorAll("[data-save-pub]").forEach(b=>b.addEventListener("click",()=>saveStatus("publisher_sites",b.dataset.savePub,$(`[data-pub-status="${CSS.escape(b.dataset.savePub)}"]`).value)));
+    $("#admin-campaigns").querySelectorAll("[data-save-camp]").forEach(b=>b.addEventListener("click",()=>saveStatus("campaigns",b.dataset.saveCamp,$(`[data-camp-status="${CSS.escape(b.dataset.saveCamp)}"]`).value)));
+    message($("#admin-message"),"Dashboard updated successfully.");
   }
-  $("#auth-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!db) return message($("#auth-message"), "Supabase is not configured.", true);
-    const data = new FormData(e.currentTarget), email = data.get("email"), password = data.get("password");
-    $("#auth-submit").disabled = true;
-    try {
-      const result = mode==="login"
-        ? await db.auth.signInWithPassword({email,password})
-        : await db.auth.signUp({email,password});
-      if (result.error) throw result.error;
-      if (mode==="signup" && !result.data.session) {
-        message($("#auth-message"), "Account created. Check your email to confirm your address.");
-      } else {
-        message($("#auth-message"), "You are signed in.");
-        $("#auth-dialog").close();
-        setSignedIn(result.data.user);
-      }
-    } catch (err) { message($("#auth-message"), err.message || "Authentication failed.", true); }
-    finally { $("#auth-submit").disabled = false; }
-  });
-  $("#logout").addEventListener("click", async () => { if (db) await db.auth.signOut(); setSignedIn(null); });
-  $("#refresh").addEventListener("click", loadCampaigns);
-
-  $("#campaign-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!db || !currentUser) {
-      message($("#form-message"), "Please sign in before saving a campaign.", true);
-      $("#auth-dialog").showModal(); return;
-    }
-    const f = new FormData(e.currentTarget);
-    const days = Number(f.get("duration_days"));
-    if (!Number.isInteger(days) || days < 1 || days > 365) return message($("#form-message"), "Duration must be between 1 and 365 days.", true);
-    const campaign = {
-      user_id: currentUser.id,
-      name: f.get("name"),
-      destination_url: f.get("destination_url") || null,
-      objective: f.get("objective"),
-      country: f.get("country"),
-      age_range: f.get("age_range"),
-      gender: f.get("gender"),
-      interests: f.get("interests") || null,
-      duration_days: days,
-      budget: f.get("budget") ? Number(f.get("budget")) : null,
-      currency: f.get("currency"),
-      description: f.get("description") || null,
-      status: "draft"
-    };
-    const btn = e.submitter; btn.disabled = true;
-    try {
-      const {error} = await db.from("campaigns").insert(campaign);
-      if (error) throw error;
-      message($("#form-message"), "Campaign draft saved.");
-      e.currentTarget.reset(); e.currentTarget.elements.duration_days.value = 1;
-      await loadCampaigns();
-    } catch (err) { message($("#form-message"), err.message || "Could not save campaign. Run schema.sql first.", true); }
-    finally { btn.disabled = false; }
-  });
-
-  $("#publisher-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!db || !currentUser) {
-      message($("#publisher-message"), "Please sign in before submitting a publisher application.", true);
-      $("#auth-dialog").showModal(); return;
-    }
-    const f = new FormData(e.currentTarget);
-    const siteUrl = String(f.get("site_url") || "").trim();
-    try {
-      const parsed = new URL(siteUrl);
-      if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Invalid URL");
-    } catch (_) {
-      message($("#publisher-message"), "Enter a valid website URL, for example https://example.com.", true); return;
-    }
-    const submit = e.submitter; submit.disabled = true;
-    try {
-      const {error} = await db.from("publisher_sites").insert({
-        user_id: currentUser.id,
-        site_name: String(f.get("site_name")).trim(),
-        site_url: siteUrl,
-        category: f.get("category"),
-        monthly_visitors: f.get("monthly_visitors"),
-        ad_format: f.get("ad_format"),
-        status: "pending"
-      });
-      if (error) throw error;
-      message($("#publisher-message"), "Application submitted. It is waiting for review.");
-      e.currentTarget.reset();
-      await loadPublisherSites();
-    } catch (err) {
-      message($("#publisher-message"), err.message || "Could not submit application. Run the updated schema.sql in Supabase.", true);
-    } finally { submit.disabled = false; }
-  });
-  $("#publisher-refresh").addEventListener("click", loadPublisherSites);
-
-  async function loadPublisherSites() {
-    const holder = $("#publisher-list");
-    if (!db || !currentUser) {
-      holder.innerHTML = '<p class="muted">Sign in to view your publisher applications.</p>'; return;
-    }
-    holder.innerHTML = '<p class="muted">Loading publisher applications…</p>';
-    const {data,error} = await db.from("publisher_sites").select("*").order("created_at",{ascending:false});
-    if (error) {
-      holder.innerHTML = `<p class="error">${escapeHtml(error.message)}. Run the updated schema.sql in Supabase.</p>`; return;
-    }
-    if (!data || !data.length) {
-      holder.innerHTML = '<p class="muted">No websites submitted yet. Complete the form above to apply.</p>'; return;
-    }
-    holder.innerHTML = data.map(site => `<article class="campaign-item"><div><strong>${escapeHtml(site.site_name)}</strong><p><a href="${escapeHtml(site.site_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(site.site_url)}</a> · ${escapeHtml(site.category)} · ${escapeHtml(site.monthly_visitors)}</p></div><span class="status">${escapeHtml(site.status)}</span></article>`).join("");
-  }
-
-  async function loadCampaigns() {
-    if (!db || !currentUser) return;
-    const holder = $("#campaign-list");
-    holder.innerHTML = '<p class="muted">Loading campaigns…</p>';
-    const {data,error} = await db.from("campaigns").select("*").order("created_at",{ascending:false});
-    if (error) { holder.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`; return; }
-    if (!data || !data.length) { holder.innerHTML = '<p class="muted">No campaigns yet. Create your first draft above.</p>'; return; }
-    holder.innerHTML = data.map(c => `<article class="campaign-item"><div><strong>${escapeHtml(c.name)}</strong><p>${escapeHtml(c.objective || "")} · ${escapeHtml(c.country || "Worldwide")} · ${c.duration_days} day(s)</p></div><span class="status">${escapeHtml(c.status)}</span></article>`).join("");
-  }
-  function escapeHtml(value) { return String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-
-  if (db) {
-    db.auth.getSession().then(({data}) => setSignedIn(data.session?.user || null));
-    db.auth.onAuthStateChange((_event, session) => setSignedIn(session?.user || null));
-  }
+  async function saveStatus(table,id,status){if(!isAdmin||!db)return;const allowed=table==="publisher_sites"?["pending","approved","rejected","suspended"]:["draft","pending","active","paused","completed","rejected"];if(!allowed.includes(status))return;const {error}=await db.from(table).update({status}).eq("id",id);if(error){message($("#admin-message"),"Could not save status: "+error.message,true);return;}message($("#admin-message"),"Status updated.");await loadAdmin();await loadPublisherSites();await loadCampaigns();}
+  if(db){db.auth.getSession().then(({data})=>setSignedIn(data.session?.user||null));db.auth.onAuthStateChange((_event,session)=>{setSignedIn(session?.user||null);});}
 })();

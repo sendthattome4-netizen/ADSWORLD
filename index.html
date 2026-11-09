@@ -19,7 +19,23 @@
       <div><p class="eyebrow">YOUR ADVERTISING, YOUR REACH</p><h1>Make every campaign count.</h1><p class="sub">Plan advertising campaigns, choose your audience and book from one day upward.</p><a href="#create" class="btn btn-primary">Create a campaign</a></div>
       <div class="hero-card"><div class="hero-stat">1 day</div><strong>Flexible campaign booking</strong><p>Start small. Set your own duration and budget.</p></div>
     </section>
-    <section class="notice"><strong>Starter version:</strong> Campaigns are saved to your AdWorld database after you connect your account. Advertising delivery, publisher placements and payment processing are not activated yet.</section>
+    <section class="notice"><strong>Current platform stage:</strong> AdWorld saves campaigns and publisher applications. Ad delivery, impression/click tracking and payment processing are not active yet.</section>
+
+    <section class="panel" id="admin-panel" hidden>
+      <div class="section-heading"><div><p class="eyebrow">PLATFORM CONTROL</p><h2>AdWorld Admin Dashboard</h2><p class="muted">Manage publisher applications, campaign reviews and registered accounts.</p></div><span class="tag admin-tag">Administrator</span></div>
+      <p id="admin-message" class="message">Loading administration data…</p>
+      <div class="stats-grid">
+        <article class="stat-card"><span>Registered users</span><strong id="stat-users">—</strong></article>
+        <article class="stat-card"><span>Campaigns</span><strong id="stat-campaigns">—</strong></article>
+        <article class="stat-card"><span>Publisher websites</span><strong id="stat-publishers">—</strong></article>
+        <article class="stat-card"><span>Pending reviews</span><strong id="stat-pending">—</strong></article>
+      </div>
+      <div class="admin-section"><div class="section-heading"><div><p class="eyebrow">PUBLISHER REVIEW</p><h3>Publisher applications</h3></div><button id="admin-refresh" class="btn btn-light" type="button">Refresh dashboard</button></div><div id="admin-publishers" class="table-list"><p class="muted">Loading…</p></div></div>
+      <div class="admin-section"><div class="section-heading"><div><p class="eyebrow">ADVERTISER REVIEW</p><h3>Campaigns</h3></div></div><div id="admin-campaigns" class="table-list"><p class="muted">Loading…</p></div></div>
+      <div class="admin-section"><div class="section-heading"><div><p class="eyebrow">ACCOUNT DIRECTORY</p><h3>Registered users</h3></div></div><div id="admin-users" class="table-list"><p class="muted">Loading…</p></div></div>
+      <p class="notice small-notice">Admin actions update review statuses only. Payments, ad serving and performance tracking are not yet enabled.</p>
+    </section>
+
     <section class="panel" id="create">
       <div class="section-heading"><div><p class="eyebrow">CAMPAIGN WORKSPACE</p><h2>Create a campaign</h2></div><span class="tag">Booking: 1–365 days</span></div>
       <form id="campaign-form" class="form-grid">
@@ -37,6 +53,7 @@
         <div class="full form-bottom"><p id="form-message" class="message">Sign in to save a campaign.</p><button class="btn btn-primary" type="submit">Save campaign draft</button></div>
       </form>
     </section>
+
     <section class="panel" id="publisher">
       <div class="section-heading"><div><p class="eyebrow">PUBLISHER NETWORK</p><h2>Register your website</h2></div><span class="tag">For website owners</span></div>
       <p class="muted">Apply to display eligible AdWorld advertising placements on a website you own or manage. Applications are reviewed before any ads can run.</p>
@@ -50,23 +67,15 @@
       </form>
       <div class="section-heading publisher-subhead"><div><p class="eyebrow">PUBLISHER DASHBOARD</p><h2>My websites</h2></div><button id="publisher-refresh" class="btn btn-light" type="button">Refresh</button></div>
       <div id="publisher-list" class="campaign-list"><p class="muted">Sign in to view your publisher applications.</p></div>
-      <p class="notice small-notice">Publisher applications are stored for review. Ad serving, earnings, and payments are not active yet. Do not place an ad code on your site until AdWorld provides an approved integration.</p>
+      <p class="notice small-notice">Publisher applications are stored for review. Ad serving, earnings, and payments are not active yet.</p>
     </section>
-    <section class="panel">
-      <div class="section-heading"><div><p class="eyebrow">YOUR WORK</p><h2>My campaigns</h2></div><button id="refresh" class="btn btn-light">Refresh</button></div>
-      <div id="campaign-list" class="campaign-list"><p class="muted">Sign in to view your saved campaigns.</p></div>
-    </section>
+    <section class="panel"><div class="section-heading"><div><p class="eyebrow">YOUR WORK</p><h2>My campaigns</h2></div><button id="refresh" class="btn btn-light" type="button">Refresh</button></div><div id="campaign-list" class="campaign-list"><p class="muted">Sign in to view your saved campaigns.</p></div></section>
     <footer>© <span id="year"></span> AdWorld. Build your reach responsibly.</footer>
   </main>
   <dialog id="auth-dialog">
     <form method="dialog" class="dialog-head"><h2 id="auth-title">Welcome to AdWorld</h2><button class="x" aria-label="Close">×</button></form>
-    <div class="auth-tabs"><button id="show-login" class="active">Sign in</button><button id="show-signup">Create account</button></div>
-    <form id="auth-form" class="auth-form">
-      <label>Email address<input name="email" type="email" required autocomplete="email"></label>
-      <label>Password<input name="password" type="password" minlength="6" required autocomplete="current-password"></label>
-      <button id="auth-submit" class="btn btn-primary" type="submit">Sign in</button>
-      <p id="auth-message" class="message"></p>
-    </form>
+    <div class="auth-tabs"><button id="show-login" class="active" type="button">Sign in</button><button id="show-signup" type="button">Create account</button></div>
+    <form id="auth-form" class="auth-form"><label>Email address<input name="email" type="email" required autocomplete="email"></label><label>Password<input name="password" type="password" minlength="6" required autocomplete="current-password"></label><button id="auth-submit" class="btn btn-primary" type="submit">Sign in</button><p id="auth-message" class="message"></p></form>
   </dialog>
 </body>
 </html>

@@ -1,19 +1,22 @@
-# AdWorld V3 — Publisher applications
+# AdWorld Admin Dashboard Update
 
-## What this version adds
-- Publisher website application form.
-- Publisher dashboard showing the signed-in user's submitted websites and review status.
-- Applications remain pending until reviewed.
-- Existing advertiser campaign and account features remain.
+This update adds an administrator dashboard to the existing AdWorld Supabase-connected site.
 
-## Update Supabase
-1. Open your Supabase project and choose SQL Editor.
-2. Create a new query.
-3. Open the updated `schema.sql` file, copy all its contents, paste into SQL Editor, and run it.
-4. This script can be rerun safely and adds the `publisher_sites` table and security policies.
+## Files to replace in the existing GitHub repository
+- `index.html`
+- `app.js`
+- `styles.css`
 
-## Publish
-Upload the updated `index.html`, `styles.css`, `app.js`, `schema.sql`, and `SETUP.md` to the root of the existing GitHub ADSWORLD repository. Keep `config.js` unchanged. Commit the changes; Netlify should automatically redeploy after the GitHub commit.
+Keep the existing `config.js` unchanged so your Supabase project connection remains intact. Keep `schema.sql` unchanged; the admin helper function and admin read/update policies were already created in the Supabase SQL Editor during setup.
 
-## Current limitations
-This version accepts publisher applications and displays their status. It does not yet verify website ownership, serve ads, count impressions/clicks, calculate earnings, or process payouts.
+## Admin dashboard features
+- Admin-only dashboard visibility based on `profiles.role = 'admin'`.
+- Counts for users, campaigns, publisher websites and pending reviews.
+- View publisher applications and change their status to pending, approved, rejected or suspended.
+- View campaigns and change their status to draft, pending, active, paused, completed or rejected.
+- View registered users and their roles.
+
+## Important
+This dashboard does not yet deliver advertisements, track impressions/clicks, process payments, or calculate publisher earnings. Do not promise those functions as active.
+
+The browser uses only the Supabase publishable key already present in `config.js`. Never put a Supabase secret/service-role key or database password in browser files.
